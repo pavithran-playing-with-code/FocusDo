@@ -84,16 +84,7 @@ chrome.alarms.onAlarm.addListener((alarm) => {
             }).catch(() => { });
         }
 
-        // ── Auto-open the extension as a popup window ─────────────────────
-        chrome.windows.create({
-            url: chrome.runtime.getURL('index.html'),
-            type: 'popup',
-            width: 380,
-            height: 600,
-            focused: true
-        });
-
-        // ── Also fire a system notification as a backup ───────────────────
+        // ── Fire a system notification that stays until user acts ─────────
         const notifId = wasFocus ? 'focusdo-focus-done' : 'focusdo-break-done';
 
         // Clear any existing notification of same id first (avoids stacking)
@@ -150,17 +141,14 @@ chrome.notifications.onButtonClicked.addListener((notifId, btnIdx) => {
     });
 });
 
-// ─── Clicking the notification body opens the extension popup ────────────────
+// ─── Clicking the notification body focuses Chrome and opens the extension ───
 chrome.notifications.onClicked.addListener((notifId) => {
     if (notifId !== 'focusdo-focus-done' && notifId !== 'focusdo-break-done') return;
     chrome.notifications.clear(notifId);
 
-    // Open the extension popup in a small window (popup windows open on top)
-    chrome.windows.create({
-        url: chrome.runtime.getURL('index.html'),
-        type: 'popup',
-        width: 380,
-        height: 600,
-        focused: true
+    // Bring Chrome to front by focusing the most recent window,
+    // then the user can click the extension icon (or use Ctrl+Shift+F shortcut)
+    chrome.windows.getLastFocused((win) => {
+        if (win) chrome.windows.update(win.id, { focused: true });
     });
 });
