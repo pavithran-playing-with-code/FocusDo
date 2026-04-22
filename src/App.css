@@ -1,38 +1,602 @@
-.App {
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  background: transparent;
+}
+
+.app {
+  width: 340px;
+  background: #ffffff;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(79, 70, 229, 0.13);
+}
+
+/* ── Header ── */
+.header {
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  border-top-left-radius: 24px;
+  border-top-right-radius: 24px;
+  padding: 10px 14px 0 14px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.brand-icon {
+  font-size: 16px;
+  color: #ffffff;
+  opacity: 0.9;
+}
+
+.brand-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: white;
+  letter-spacing: 0.5px;
+}
+
+.tab-pills {
+  display: flex;
+  gap: 4px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 12px 12px 0 0;
+  padding: 4px 4px 0 4px;
+}
+
+.pill {
+  flex: 1;
+  padding: 8px;
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 8px 8px 0 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.2s;
+}
+
+.pill.active {
+  background: #ffffff;
+  color: #4f46e5;
+  font-weight: 700;
+}
+
+/* ── Content ── */
+.content {
+  padding: 16px;
+  min-height: 320px;
+}
+
+/* ── Stats ── */
+.stats-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.stat-chip {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.stat-chip.pending {
+  background: #ede9fe;
+  color: #6d28d9;
+}
+
+.stat-chip.done-chip {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+/* ── Input ── */
+.input-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.input-row input {
+  flex: 1;
+  padding: 10px 14px;
+  border: 2px solid #e9ecef;
+  border-radius: 14px;
+  font-size: 13px;
+  outline: none;
+  transition: border 0.2s;
+  color: #1e1b4b;
+}
+
+.input-row input:focus {
+  border-color: #6366f1;
+}
+
+.add-btn {
+  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  width: 42px;
+  height: 42px;
+  cursor: pointer;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+  transition: transform 0.15s;
+}
+
+.add-btn:hover {
+  transform: scale(1.08);
+}
+
+/* ── Task List ── */
+.task-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 240px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.task-list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.task-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.task-list::-webkit-scrollbar-thumb {
+  background: #e0e7ff;
+  border-radius: 4px;
+}
+
+.task-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: #f8f9ff;
+  border-radius: 14px;
+  border: 1px solid #ede9fe;
+  transition: all 0.2s;
+}
+
+.task-item.done {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+  opacity: 0.8;
+}
+
+.task-item.high-priority {
+  border-color: #fed7aa;
+  background: #fff7ed;
+}
+
+.task-text {
+  flex: 1;
+  font-size: 13px;
+  color: #374151;
+}
+
+.task-item.done .task-text {
+  text-decoration: line-through;
+  color: #9ca3af;
+}
+
+.check-btn {
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  border: 2px solid #d1d5db;
+  background: white;
+  cursor: pointer;
+  font-size: 11px;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.check-btn.checked {
+  background: linear-gradient(135deg, #10b981, #059669);
+  border-color: transparent;
+}
+
+.del-btn {
+  background: transparent;
+  border: none;
+  color: #e5e7eb;
+  cursor: pointer;
+  font-size: 12px;
+  padding: 4px;
+  border-radius: 6px;
+  transition: color 0.2s;
+  flex-shrink: 0;
+}
+
+.del-btn:hover {
+  color: #ef4444;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 32px;
+  color: #9ca3af;
+  font-size: 13px;
+}
+
+.empty-state span {
+  font-size: 28px;
+}
+
+/* ── Priority flag button ── */
+.priority-btn {
+  background: #f8f9ff;
+  border: 2px solid #e9ecef;
+  border-radius: 10px;
+  width: 42px;
+  height: 42px;
+  color: #d1d5db;
+  cursor: pointer;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.priority-btn.active {
+  background: #fff7ed;
+  border-color: #fb923c;
+  color: #ea580c;
+}
+
+.flag-icon {
+  color: #ea580c;
+  font-size: 10px;
+  margin-right: 5px;
+}
+
+/* ── Clear done button ── */
+.clear-btn {
+  margin-left: auto;
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  font-size: 11px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.clear-btn:hover {
+  color: #ef4444;
+  background: #fee2e2;
+}
+
+/* ── Pomodoro ── */
+.pomodoro {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 0;
+}
+
+.mode-pill {
+  padding: 5px 18px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.mode-pill.focus {
+  background: #ede9fe;
+  color: #5b21b6;
+}
+
+.mode-pill.brk {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+/* ── Duration row: focus + break side by side ── */
+.duration-row {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  margin-bottom: 8px;
+}
+
+/* ── Time Input ── */
+.time-input {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 0;
+}
+
+.time-input label {
+  font-size: 11px;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.time-input-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.time-input input {
+  width: 56px;
+  padding: 5px 8px;
+  border-radius: 10px;
+  border: 2px solid #e5e7eb;
   text-align: center;
+  font-weight: 700;
+  font-size: 15px;
+  outline: none;
+  color: #1e1b4b;
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
+.time-input input:focus {
+  border-color: #6366f1;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
+.time-input input:disabled {
+  background: #f1f5f9;
+  color: #94a3b8;
 }
 
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
+.time-input span {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+/* ── Pomodoro +/- Buttons ── */
+.min-adj {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: 2px solid #e5e7eb;
+  background: #f8f9ff;
+  color: #4f46e5;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  line-height: 1;
+}
+
+.min-adj:hover:not(:disabled) {
+  background: #ede9fe;
+  border-color: #a5b4fc;
+}
+
+.min-adj:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ── Ring ── */
+.ring-wrap {
+  position: relative;
+  width: 170px;
+  height: 170px;
+}
+
+.ring-wrap svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.ring-bg {
+  fill: none;
+  stroke: #f1f5f9;
+  stroke-width: 7;
+}
+
+.ring-progress {
+  fill: none;
+  stroke-width: 7;
+  stroke-linecap: round;
+  transition: stroke-dasharray 1s linear;
+}
+
+.ring-inner {
+  position: absolute;
+  inset: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  font-size: calc(10px + 2vmin);
+}
+
+.ring-time {
+  font-size: 36px;
+  font-weight: 800;
+  color: #1e1b4b;
+  letter-spacing: 2px;
+}
+
+.ring-label {
+  font-size: 12px;
+  color: #6b7280;
+  margin-top: 2px;
+}
+
+.sessions-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+/* ── Pomodoro Controls ── */
+.pomo-controls {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.pomo-btn {
+  border: none;
+  border-radius: 14px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s;
+}
+
+.pomo-btn.ghost {
+  background: #f1f5f9;
+  color: #64748b;
+  padding: 10px 14px;
+  border-radius: 12px;
+}
+
+.pomo-btn.ghost:hover {
+  background: #e2e8f0;
+}
+
+.pomo-btn.main {
+  padding: 12px 28px;
+  font-size: 15px;
+  box-shadow: 0 4px 14px rgba(79, 70, 229, 0.3);
+}
+
+.pomo-btn.indigo {
+  background: linear-gradient(135deg, #4f46e5, #7c3aed);
   color: white;
 }
 
-.App-link {
-  color: #61dafb;
+.pomo-btn.green {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
 }
 
-@keyframes App-logo-spin {
+.pomo-btn.main:hover {
+  transform: scale(1.04);
+}
+
+/* ── Finish Banner ── */
+.finish-banner {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  animation: slideDown 0.3s ease;
+  position: relative;
+}
+
+.banner-break {
+  background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+  border: 1px solid #6ee7b7;
+}
+
+.banner-focus {
+  background: linear-gradient(135deg, #ede9fe, #ddd6fe);
+  border: 1px solid #a5b4fc;
+}
+
+.banner-icon {
+  font-size: 26px;
+  flex-shrink: 0;
+}
+
+.banner-text {
+  flex: 1;
+}
+
+.banner-text strong {
+  font-size: 13px;
+  color: #1e1b4b;
+  display: block;
+}
+
+.banner-text p {
+  font-size: 11px;
+  color: #6b7280;
+  margin-top: 2px;
+}
+
+.banner-close {
+  background: transparent;
+  border: none;
+  color: #9ca3af;
+  cursor: pointer;
+  font-size: 13px;
+  padding: 2px 6px;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+.banner-close:hover {
+  color: #ef4444;
+  background: #fee2e2;
+}
+
+@keyframes slideDown {
   from {
-    transform: rotate(0deg);
+    opacity: 0;
+    transform: translateY(-8px);
   }
+
   to {
-    transform: rotate(360deg);
+    opacity: 1;
+    transform: translateY(0);
   }
+}
+
+.break-hint {
+  font-size: 10px;
+  color: #10b981;
+  font-weight: 400;
+  text-transform: none;
+  margin-left: 4px;
 }
