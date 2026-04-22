@@ -1,0 +1,18 @@
+{
+    "watch": [
+        "server.js",
+        "routes/",
+        "config/",
+        "middleware/"
+    ],
+    "ext": "js,json",
+    "ignore": [
+        "build/",
+        "build-chrome/",
+        "build-firefox/",
+        "src/",
+        "public/",
+        "node_modules/"
+    ],
+    "delay": "500"
+}

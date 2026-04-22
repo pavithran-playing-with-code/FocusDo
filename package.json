@@ -6,7 +6,9 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
-    "build": "react-scripts build && copy public\\background.js build\\background.js",
+    "build:all": "node scripts/build.js",
+    "build:chrome": "react-scripts build && node -e \"const fs=require('fs');fs.copyFileSync('public/manifest.chromium.json','build/manifest.json');fs.copyFileSync('public/background.chromium.js','build/background.js');\"",
+    "build:firefox": "react-scripts build && node -e \"const fs=require('fs');fs.copyFileSync('public/manifest.firefox.json','build/manifest.json');fs.copyFileSync('public/background.firefox.js','build/background.js');\"",
     "react-start": "react-scripts start",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
