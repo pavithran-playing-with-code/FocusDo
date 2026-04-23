@@ -1,4 +1,7 @@
-// ─── Timer Messages ──────────────────────────────────────────────────────────
+// ─── Load API URL from .env (injected at build time) ─────────────────────────
+importScripts('config.js'); // gives us FOCUSDO_API
+
+// ─── Timer Messages ───────────────────────────────────────────────────────────
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
 
     if (msg.type === 'START_TIMER') {
@@ -45,7 +48,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     return true;
 });
 
-// ─── Alarm fires when timer ends ─────────────────────────────────────────────
+// ─── Alarm fires when timer ends ──────────────────────────────────────────────
 chrome.alarms.onAlarm.addListener((alarm) => {
     if (alarm.name !== 'focusdo-timer') return;
 
@@ -58,7 +61,6 @@ chrome.alarms.onAlarm.addListener((alarm) => {
         const breakDuration = t.customBreak || 5 * 60;
         const nextSeconds = nextIsFocus ? (t.totalSeconds || 25 * 60) : breakDuration;
 
-        // Update state — mark justFinished so popup shows the right CTA on open
         chrome.storage.local.set({
             timer: {
                 endTime: null,
@@ -71,9 +73,9 @@ chrome.alarms.onAlarm.addListener((alarm) => {
             }
         });
 
-        // Save completed focus session to backend
+        // ✅ API URL from .env via config.js
         if (wasFocus) {
-            fetch('http://localhost:5050/api/sessions', {
+            fetch(`${FOCUSDO_API}/sessions`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -84,27 +86,22 @@ chrome.alarms.onAlarm.addListener((alarm) => {
             }).catch(() => { });
         }
 
-        // ── Fire a system notification that stays until user acts ─────────
         const notifId = wasFocus ? 'focusdo-focus-done' : 'focusdo-break-done';
-
-        // Clear any existing notification of same id first (avoids stacking)
         chrome.notifications.clear(notifId, () => {
             chrome.notifications.create(notifId, {
                 type: 'basic',
-                // Use runtime URL so icon loads correctly in service worker
                 iconUrl: chrome.runtime.getURL('icon128.png'),
                 title: wasFocus ? 'Focus Session Complete!' : 'Break Over!',
                 message: wasFocus
                     ? 'Great work! Take a well-earned break.'
                     : 'Break finished. Ready to focus again?',
                 contextMessage: 'FocusDo — click to open',
-                // Action buttons let the user act WITHOUT opening the extension
                 buttons: [
-                    { title: wasFocus ? '☕ Start Break now' : '🎯 Start Focus now' },
+                    { title: wasFocus ? 'Start Break now' : 'Start Focus now' },
                     { title: 'Dismiss' }
                 ],
                 priority: 2,
-                requireInteraction: true   // stays on screen until user acts
+                requireInteraction: true
             });
         });
     });
@@ -113,41 +110,29 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 // ─── Notification button clicks ───────────────────────────────────────────────
 chrome.notifications.onButtonClicked.addListener((notifId, btnIdx) => {
     if (notifId !== 'focusdo-focus-done' && notifId !== 'focusdo-break-done') return;
-
     chrome.notifications.clear(notifId);
+    if (btnIdx === 1) return; // Dismiss
 
-    if (btnIdx === 1) return; // "Dismiss" — do nothing
-
-    // Button 0: "Start Break" or "Start Focus"
     chrome.storage.local.get('timer', (data) => {
         const t = data.timer;
         if (!t) return;
-
-        const seconds = t.secondsLeft || (t.isFocus ? (t.totalSeconds || 25 * 60) : (t.customBreak || 5 * 60));
+        const seconds = t.secondsLeft || (t.isFocus
+            ? (t.totalSeconds || 25 * 60)
+            : (t.customBreak || 5 * 60));
         const endTime = Date.now() + seconds * 1000;
-
         chrome.storage.local.set({
-            timer: {
-                ...t,
-                endTime,
-                running: true,
-                justFinished: false
-            }
+            timer: { ...t, endTime, running: true, justFinished: false }
         });
-
         chrome.alarms.clear('focusdo-timer', () => {
             chrome.alarms.create('focusdo-timer', { when: endTime });
         });
     });
 });
 
-// ─── Clicking the notification body focuses Chrome and opens the extension ───
+// ─── Notification body click — bring Chrome to front ─────────────────────────
 chrome.notifications.onClicked.addListener((notifId) => {
     if (notifId !== 'focusdo-focus-done' && notifId !== 'focusdo-break-done') return;
     chrome.notifications.clear(notifId);
-
-    // Bring Chrome to front by focusing the most recent window,
-    // then the user can click the extension icon (or use Ctrl+Shift+F shortcut)
     chrome.windows.getLastFocused((win) => {
         if (win) chrome.windows.update(win.id, { focused: true });
     });

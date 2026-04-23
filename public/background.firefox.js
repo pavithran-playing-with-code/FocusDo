@@ -1,6 +1,9 @@
-// ─── Timer Messages ───────────────────────────────────────────────────────
+// ─── config.js is loaded before this via manifest scripts array ───────────────
+// FOCUSDO_API is already available as a global variable
+
 var browser = browser || chrome;
 
+// ─── Timer Messages ───────────────────────────────────────────────────────────
 browser.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
 
     if (msg.type === 'START_TIMER') {
@@ -47,7 +50,7 @@ browser.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     return true;
 });
 
-// ─── Alarm fires when timer ends ─────────────────────────────────────────
+// ─── Alarm fires when timer ends ──────────────────────────────────────────────
 browser.alarms.onAlarm.addListener((alarm) => {
     if (alarm.name !== 'focusdo-timer') return;
 
@@ -72,8 +75,9 @@ browser.alarms.onAlarm.addListener((alarm) => {
             }
         });
 
+        // ✅ API URL from .env via config.js
         if (wasFocus) {
-            fetch('http://localhost:5050/api/sessions', {
+            fetch(`${FOCUSDO_API}/sessions`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -84,7 +88,7 @@ browser.alarms.onAlarm.addListener((alarm) => {
             }).catch(() => { });
         }
 
-        browser.notifications.create({
+        browser.notifications.create('focusdo-notify', {
             type: 'basic',
             iconUrl: 'icon128.png',
             title: wasFocus ? 'Focus Session Complete!' : 'Break Over!',
@@ -96,6 +100,7 @@ browser.alarms.onAlarm.addListener((alarm) => {
     });
 });
 
+// ─── Notification click — clear it ───────────────────────────────────────────
 browser.notifications.onClicked.addListener((notifId) => {
     browser.notifications.clear(notifId);
 });

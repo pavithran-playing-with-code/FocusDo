@@ -6,6 +6,7 @@ import {
   faListCheck, faPlay, faPause, faRotateLeft,
   faFire, faBolt, faFlag, faBroom
 } from '@fortawesome/free-solid-svg-icons';
+import { apiFetch } from './utils/api';
 import './App.css';
 
 // ─── Generate or retrieve a stable device ID ───────────────────────────────
@@ -315,8 +316,6 @@ function Pomodoro() {
 }
 
 // ─── Todo ──────────────────────────────────────────────────────────────────
-const API = 'http://localhost:5050/api';
-
 function Todo() {
   const [tasks, setTasks] = useState([]);
   const [input, setInput] = useState('');
@@ -328,51 +327,51 @@ function Todo() {
   useEffect(() => {
     getDeviceId((id) => {
       setDeviceId(id);
-      fetch(`${API}/tasks?device_id=${encodeURIComponent(id)}`)
-        .then(r => r.json())
+      apiFetch(`/tasks?device_id=${encodeURIComponent(id)}`)
         .then(res => { if (res.success) setTasks(res.data); })
-        .catch(() => {})
+        .catch(() => { })
         .finally(() => setLoading(false));
     });
   }, []);
 
+  // Add task
   const addTask = async () => {
     if (!input.trim() || !deviceId) return;
     try {
-      const res = await fetch(`${API}/tasks`, {
+      const data = await apiFetch('/tasks', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text: input.trim(), priority: priority ? 1 : 0, device_id: deviceId })
       });
-      const data = await res.json();
       if (data.success) setTasks(prev => [data.data, ...prev]);
       setInput('');
       setPriority(false);
-    } catch {}
+    } catch { }
   };
 
+  // Toggle task
   const toggle = async (id) => {
     try {
-      const res = await fetch(`${API}/tasks/${id}/toggle`, { method: 'PATCH' });
-      const data = await res.json();
+      const data = await apiFetch(`/tasks/${id}/toggle`, { method: 'PATCH' });
       if (data.success)
         setTasks(prev => prev.map(t => t.id === id ? data.data : t));
-    } catch {}
+    } catch { }
   };
 
+  // Remove task
   const remove = async (id) => {
     try {
-      await fetch(`${API}/tasks/${id}`, { method: 'DELETE' });
+      await apiFetch(`/tasks/${id}`, { method: 'DELETE' });
       setTasks(prev => prev.filter(t => t.id !== id));
-    } catch {}
+    } catch { }
   };
 
+  // Clear done
   const clearDone = async () => {
     try {
       const q = deviceId ? `?device_id=${encodeURIComponent(deviceId)}` : '';
-      await fetch(`${API}/tasks/clear/done${q}`, { method: 'DELETE' });
+      await apiFetch(`/tasks/clear/done${q}`, { method: 'DELETE' });
       setTasks(prev => prev.filter(t => !t.done));
-    } catch {}
+    } catch { }
   };
 
   const sorted = [...tasks].sort((a, b) => {
