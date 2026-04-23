@@ -41,14 +41,7 @@ router.patch("/:id/toggle", async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-// DELETE — single task
-router.delete("/:id", async (req, res, next) => {
-  try {
-    await db.execute("DELETE FROM tasks WHERE id = ?", [req.params.id]);
-    res.json({ success: true, message: "Task deleted" });
-  } catch (err) { next(err); }
-});
-
+// ⚠️ IMPORTANT: /clear/done MUST be before /:id
 // DELETE — all completed tasks for a device
 router.delete("/clear/done", async (req, res, next) => {
   const { device_id } = req.query;
@@ -59,6 +52,14 @@ router.delete("/clear/done", async (req, res, next) => {
     const params = device_id ? [device_id] : [];
     await db.execute(query, params);
     res.json({ success: true, message: "Completed tasks cleared" });
+  } catch (err) { next(err); }
+});
+
+// DELETE — single task
+router.delete("/:id", async (req, res, next) => {
+  try {
+    await db.execute("DELETE FROM tasks WHERE id = ?", [req.params.id]);
+    res.json({ success: true, message: "Task deleted" });
   } catch (err) { next(err); }
 });
 

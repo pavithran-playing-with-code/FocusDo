@@ -227,19 +227,26 @@ body {
 }
 
 .del-btn {
-  background: transparent;
+  background: #fee2e2;
   border: none;
-  color: #e5e7eb;
+  color: #ef4444;
   cursor: pointer;
   font-size: 12px;
-  padding: 4px;
+  padding: 6px;
   border-radius: 6px;
-  transition: color 0.2s;
+  transition: all 0.2s;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
 }
 
 .del-btn:hover {
-  color: #ef4444;
+  background: #ef4444;
+  color: white;
+  transform: scale(1.1);
 }
 
 .empty-state {
@@ -599,4 +606,32 @@ body {
   font-weight: 400;
   text-transform: none;
   margin-left: 4px;
+}
+
+/* ── Drag handle ── */
+.drag-handle {
+  color: #d1d5db;
+  cursor: grab;
+  font-size: 11px;
+  flex-shrink: 0;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: color 0.2s;
+}
+
+.drag-handle:hover {
+  color: #6366f1;
+}
+
+.task-item:active {
+  cursor: grabbing;
+}
+
+.task-item[draggable="true"] {
+  cursor: grab;
+}
+
+.task-item[draggable="true"]:hover {
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
+  transform: translateY(-1px);
 }

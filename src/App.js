@@ -4,7 +4,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faPlus, faTrash, faCheck, faClock,
   faListCheck, faPlay, faPause, faRotateLeft,
-  faFire, faBolt, faFlag, faBroom
+  faFire, faBolt, faFlag, faBroom, faGripVertical
 } from '@fortawesome/free-solid-svg-icons';
 import { apiFetch } from './utils/api';
 import './App.css';
@@ -322,8 +322,9 @@ function Todo() {
   const [priority, setPriority] = useState(false);
   const [loading, setLoading] = useState(true);
   const [deviceId, setDeviceId] = useState(null);
+  const dragItem = useRef(null);
+  const dragOverItem = useRef(null);
 
-  // Get device ID first, then load tasks
   useEffect(() => {
     getDeviceId((id) => {
       setDeviceId(id);
@@ -334,7 +335,6 @@ function Todo() {
     });
   }, []);
 
-  // Add task
   const addTask = async () => {
     if (!input.trim() || !deviceId) return;
     try {
@@ -348,7 +348,6 @@ function Todo() {
     } catch { }
   };
 
-  // Toggle task
   const toggle = async (id) => {
     try {
       const data = await apiFetch(`/tasks/${id}/toggle`, { method: 'PATCH' });
@@ -357,7 +356,6 @@ function Todo() {
     } catch { }
   };
 
-  // Remove task
   const remove = async (id) => {
     try {
       await apiFetch(`/tasks/${id}`, { method: 'DELETE' });
@@ -365,13 +363,34 @@ function Todo() {
     } catch { }
   };
 
-  // Clear done
   const clearDone = async () => {
     try {
       const q = deviceId ? `?device_id=${encodeURIComponent(deviceId)}` : '';
       await apiFetch(`/tasks/clear/done${q}`, { method: 'DELETE' });
       setTasks(prev => prev.filter(t => !t.done));
     } catch { }
+  };
+
+  // ── Drag handlers ──────────────────────────────────────────────────────
+  const handleDragStart = (index) => {
+    dragItem.current = index;
+  };
+
+  const handleDragEnter = (index) => {
+    dragOverItem.current = index;
+    // Live preview while dragging
+    setTasks(prev => {
+      const updated = [...prev];
+      const dragged = updated.splice(dragItem.current, 1)[0];
+      updated.splice(index, 0, dragged);
+      dragItem.current = index;
+      return updated;
+    });
+  };
+
+  const handleDragEnd = () => {
+    dragItem.current = null;
+    dragOverItem.current = null;
   };
 
   const sorted = [...tasks].sort((a, b) => {
@@ -421,8 +440,19 @@ function Todo() {
             <p>All clear! Add a task above.</p>
           </li>
         )}
-        {sorted.map(t => (
-          <li key={t.id} className={`task-item ${t.done ? 'done' : ''} ${t.priority && !t.done ? 'high-priority' : ''}`}>
+        {sorted.map((t, index) => (
+          <li
+            key={t.id}
+            className={`task-item ${t.done ? 'done' : ''} ${t.priority && !t.done ? 'high-priority' : ''}`}
+            draggable
+            onDragStart={() => handleDragStart(index)}
+            onDragEnter={() => handleDragEnter(index)}
+            onDragEnd={handleDragEnd}
+            onDragOver={e => e.preventDefault()}
+          >
+            <span className="drag-handle" title="Drag to reorder">
+              <FontAwesomeIcon icon={faGripVertical} />
+            </span>
             <button onClick={() => toggle(t.id)} className={`check-btn ${t.done ? 'checked' : ''}`}>
               {t.done && <FontAwesomeIcon icon={faCheck} />}
             </button>

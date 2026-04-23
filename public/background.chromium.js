@@ -1,6 +1,19 @@
 // ─── Load API URL from .env (injected at build time) ─────────────────────────
 importScripts('config.js'); // gives us FOCUSDO_API
 
+// ─── Helper: open the extension popup ────────────────────────────────────────
+function openPopup() {
+    chrome.windows.getLastFocused({ populate: true }, (win) => {
+        if (win) {
+            chrome.windows.update(win.id, { focused: true });
+            chrome.action.openPopup().catch(() => {
+                // openPopup() only works if Chrome window is focused
+                // fallback: just focus the window so user can click
+            });
+        }
+    });
+}
+
 // ─── Timer Messages ───────────────────────────────────────────────────────────
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
 
@@ -104,6 +117,9 @@ chrome.alarms.onAlarm.addListener((alarm) => {
                 requireInteraction: true
             });
         });
+
+        // ── Auto-open the extension popup when timer ends ─────────────────
+        openPopup();
     });
 });
 
@@ -129,11 +145,9 @@ chrome.notifications.onButtonClicked.addListener((notifId, btnIdx) => {
     });
 });
 
-// ─── Notification body click — bring Chrome to front ─────────────────────────
+// ─── Notification body click — open popup ────────────────────────────────────
 chrome.notifications.onClicked.addListener((notifId) => {
     if (notifId !== 'focusdo-focus-done' && notifId !== 'focusdo-break-done') return;
     chrome.notifications.clear(notifId);
-    chrome.windows.getLastFocused((win) => {
-        if (win) chrome.windows.update(win.id, { focused: true });
-    });
+    openPopup(); // ← uses the helper instead of just focusing window
 });
