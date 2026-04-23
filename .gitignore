@@ -4,8 +4,10 @@ node_modules/
 # environment variables
 .env
 
-# production build
+# production builds
 build/
+build-chrome/
+build-firefox/
 dist/
 
 # logs
