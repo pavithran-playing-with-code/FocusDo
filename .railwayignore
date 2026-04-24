@@ -1,0 +1,7 @@
+src/
+public/
+build/
+build-chrome/
+build-firefox/
+scripts/
+*.map
