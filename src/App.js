@@ -475,6 +475,16 @@ function Todo() {
 // ─── App Shell ─────────────────────────────────────────────────────────────
 function App() {
   const [tab, setTab] = useState('todo');
+
+  // If the popup opened because a timer just finished, switch to Timer tab
+  useEffect(() => {
+    chrome.storage.local.get('timer', (data) => {
+      if (data.timer?.justFinished) {
+        setTab('pomodoro');
+      }
+    });
+  }, []);
+
   return (
     <div className="app">
       <div className="header">
