@@ -119,6 +119,7 @@ chrome.alarms.onAlarm.addListener((alarm) => {
         });
 
         // ── Auto-open the extension popup when timer ends ─────────────────
+        chrome.storage.local.set({ openOnTimer: true });
         openPopup();
     });
 });

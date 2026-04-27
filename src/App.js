@@ -177,24 +177,30 @@ function Pomodoro() {
 
   const handleFocusMinuteChange = (val) => {
     if (running) return;
-    val = Number(val);
-    if (val >= 1 && val <= 120) {
-      setCustomMinutes(val);
-      const s = val * 60;
-      totalRef.current = s;
-      if (isFocus) setSeconds(s);
+    // Allow empty string while user is typing (backspace)
+    if (val === '' || val === undefined) {
+      setCustomMinutes('');
+      return;
     }
+    const num = Math.max(1, Math.min(120, Number(val) || 1));
+    setCustomMinutes(num);
+    const s = num * 60;
+    totalRef.current = s;
+    if (isFocus) setSeconds(s);
   };
 
   const handleBreakMinuteChange = (val) => {
     if (running) return;
-    val = Number(val);
-    if (val >= 1 && val <= 60) {
-      setCustomBreak(val);
-      const s = val * 60;
-      breakTotalRef.current = s;
-      if (!isFocus) setSeconds(s);
+    // Allow empty string while user is typing (backspace)
+    if (val === '' || val === undefined) {
+      setCustomBreak('');
+      return;
     }
+    const num = Math.max(1, Math.min(60, Number(val) || 1));
+    setCustomBreak(num);
+    const s = num * 60;
+    breakTotalRef.current = s;
+    if (!isFocus) setSeconds(s);
   };
 
   const total = isFocus ? totalRef.current : breakTotalRef.current;
@@ -245,6 +251,7 @@ function Pomodoro() {
             <input type="number" min="1" max="120"
               value={customMinutes}
               onChange={e => handleFocusMinuteChange(e.target.value)}
+              onBlur={() => { if (!customMinutes || customMinutes < 1) handleFocusMinuteChange(1); }}
               disabled={running} />
             <button className="min-adj"
               onClick={() => handleFocusMinuteChange(customMinutes + 1)}
@@ -262,6 +269,7 @@ function Pomodoro() {
             <input type="number" min="1" max="60"
               value={customBreak}
               onChange={e => handleBreakMinuteChange(e.target.value)}
+              onBlur={() => { if (!customBreak || customBreak < 1) handleBreakMinuteChange(1); }}
               disabled={running} />
             <button className="min-adj"
               onClick={() => handleBreakMinuteChange(customBreak + 1)}
@@ -478,9 +486,10 @@ function App() {
 
   // If the popup opened because a timer just finished, switch to Timer tab
   useEffect(() => {
-    chrome.storage.local.get('timer', (data) => {
-      if (data.timer?.justFinished) {
+    chrome.storage.local.get('openOnTimer', (data) => {
+      if (data.openOnTimer) {
         setTab('pomodoro');
+        chrome.storage.local.remove('openOnTimer');
       }
     });
   }, []);

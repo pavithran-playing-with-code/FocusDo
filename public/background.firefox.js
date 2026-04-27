@@ -88,6 +88,9 @@ browser.alarms.onAlarm.addListener((alarm) => {
             }).catch(() => { });
         }
 
+        // ── Set flag so popup opens on Timer tab ─────────────────────────
+        browser.storage.local.set({ openOnTimer: true });
+
         browser.notifications.create('focusdo-notify', {
             type: 'basic',
             iconUrl: 'icon128.png',
