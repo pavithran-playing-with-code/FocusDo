@@ -635,3 +635,391 @@ body {
   box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
   transform: translateY(-1px);
 }
+/* ── Task main row layout ── */
+.task-main-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.task-item {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+}
+
+/* ── Task action buttons ── */
+.task-actions {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.action-btn {
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.edit-btn {
+  background: #ede9fe;
+  color: #6d28d9;
+}
+.edit-btn:hover {
+  background: #6d28d9;
+  color: white;
+}
+
+.save-btn {
+  background: #d1fae5;
+  color: #059669;
+}
+.save-btn:hover {
+  background: #059669;
+  color: white;
+}
+
+.expand-btn {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+.expand-btn:hover {
+  background: #0369a1;
+  color: white;
+}
+
+.flag-btn {
+  background: #f1f5f9;
+  color: #94a3b8;
+}
+.flag-btn:hover {
+  background: #fff7ed;
+  color: #ea580c;
+}
+.flag-btn.flagged {
+  background: #fff7ed;
+  color: #ea580c;
+}
+
+/* ── Inline edit input ── */
+.task-edit-input {
+  flex: 1;
+  padding: 4px 8px;
+  border: 2px solid #6366f1;
+  border-radius: 8px;
+  font-size: 13px;
+  outline: none;
+  color: #1e1b4b;
+  min-width: 0;
+}
+
+/* ── Subtask progress bar ── */
+.subtask-progress-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 4px;
+  margin-top: 2px;
+}
+
+.subtask-progress-bar {
+  flex: 1;
+  height: 5px;
+  background: #e9ecef;
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.subtask-progress-fill {
+  height: 100%;
+  border-radius: 99px;
+  transition: width 0.4s ease, background 0.4s ease;
+}
+
+.subtask-progress-label {
+  font-size: 10px;
+  color: #6b7280;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ── Subtask section ── */
+.subtask-section {
+  padding: 8px 6px 4px 36px;
+  border-top: 1px dashed #e9ecef;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.subtask-loading {
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+.subtask-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.subtask-item.done .subtask-text {
+  text-decoration: line-through;
+  color: #9ca3af;
+}
+
+.subtask-text {
+  flex: 1;
+  font-size: 12px;
+  color: #374151;
+}
+
+.subtask-del {
+  background: transparent;
+  border: none;
+  color: #d1d5db;
+  cursor: pointer;
+  font-size: 12px;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: color 0.2s;
+}
+.subtask-del:hover {
+  color: #ef4444;
+}
+
+.check-btn.small {
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+  font-size: 9px;
+}
+
+.subtask-input-row {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.subtask-input {
+  flex: 1;
+  padding: 5px 10px;
+  border: 1.5px solid #e9ecef;
+  border-radius: 8px;
+  font-size: 12px;
+  outline: none;
+  color: #374151;
+}
+.subtask-input:focus {
+  border-color: #6366f1;
+}
+
+.subtask-add-btn {
+  background: #ede9fe;
+  border: none;
+  color: #6d28d9;
+  border-radius: 8px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 11px;
+  transition: all 0.2s;
+}
+.subtask-add-btn:hover {
+  background: #6d28d9;
+  color: white;
+}
+
+/* ── Pomodoro top row with history icon ── */
+.pomodoro-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  position: relative;
+}
+
+.history-icon-btn {
+  position: absolute;
+  right: 0;
+  background: #f1f5f9;
+  border: none;
+  color: #64748b;
+  border-radius: 8px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 13px;
+  transition: all 0.2s;
+}
+.history-icon-btn:hover {
+  background: #ede9fe;
+  color: #6d28d9;
+}
+
+/* ── Timer History Panel ── */
+.timer-history {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 320px;
+}
+
+.history-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.back-btn {
+  background: #f1f5f9;
+  border: none;
+  color: #64748b;
+  border-radius: 8px;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+.back-btn:hover {
+  background: #ede9fe;
+  color: #6d28d9;
+}
+
+.history-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e1b4b;
+  flex: 1;
+}
+
+.clear-all-btn {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  font-size: 11px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+.clear-all-btn:hover {
+  color: #ef4444;
+  background: #fee2e2;
+}
+
+.history-empty {
+  font-size: 13px;
+  color: #9ca3af;
+  text-align: center;
+  padding: 40px 0;
+}
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 280px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.history-list::-webkit-scrollbar { width: 4px; }
+.history-list::-webkit-scrollbar-track { background: transparent; }
+.history-list::-webkit-scrollbar-thumb { background: #e0e7ff; border-radius: 4px; }
+
+.history-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.history-date-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 0 2px;
+  margin-bottom: 2px;
+}
+
+.history-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  background: #f8f9ff;
+  border-radius: 10px;
+  border: 1px solid #ede9fe;
+}
+
+.history-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 20px;
+  flex-shrink: 0;
+}
+.history-badge.focus {
+  background: #ede9fe;
+  color: #5b21b6;
+}
+.history-badge.break {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.history-duration {
+  font-size: 12px;
+  font-weight: 700;
+  color: #1e1b4b;
+  flex: 1;
+}
+
+.history-time {
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+.history-del-btn {
+  background: transparent;
+  border: none;
+  color: #d1d5db;
+  cursor: pointer;
+  font-size: 12px;
+  padding: 2px 5px;
+  border-radius: 4px;
+  transition: color 0.2s;
+}
+.history-del-btn:hover {
+  color: #ef4444;
+}

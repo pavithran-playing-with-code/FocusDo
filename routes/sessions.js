@@ -31,21 +31,33 @@ router.get("/today", async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-// GET — last 7 days summary
+// GET — last 30 days history (individual sessions)
 router.get("/history", async (req, res, next) => {
   try {
     const [rows] = await db.execute(`
-      SELECT
-        DATE(created_at)               AS date,
-        COUNT(*)                       AS sessions,
-        COALESCE(SUM(duration_min), 0) AS minutes
+      SELECT id, duration_min, type, completed, created_at
       FROM pomodoro_sessions
-      WHERE type = 'focus' AND completed = 1
-        AND created_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
-      GROUP BY DATE(created_at)
-      ORDER BY date DESC
+      WHERE completed = 1
+        AND created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+      ORDER BY created_at DESC
     `);
     res.json({ success: true, data: rows });
+  } catch (err) { next(err); }
+});
+
+// DELETE — single session
+router.delete("/:id", async (req, res, next) => {
+  try {
+    await db.execute("DELETE FROM pomodoro_sessions WHERE id = ?", [req.params.id]);
+    res.json({ success: true, message: "Session deleted" });
+  } catch (err) { next(err); }
+});
+
+// DELETE — all history
+router.delete("/", async (req, res, next) => {
+  try {
+    await db.execute("DELETE FROM pomodoro_sessions");
+    res.json({ success: true, message: "All history cleared" });
   } catch (err) { next(err); }
 });
 

@@ -4,12 +4,14 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faPlus, faTrash, faCheck, faClock,
   faListCheck, faPlay, faPause, faRotateLeft,
-  faFire, faBolt, faFlag, faBroom, faGripVertical
+  faFire, faBolt, faFlag, faBroom, faGripVertical,
+  faPencil, faChevronDown, faChevronRight, faHistory,
+  faArrowLeft, faXmark
 } from '@fortawesome/free-solid-svg-icons';
 import { apiFetch } from './utils/api';
 import './App.css';
 
-// ─── Generate or retrieve a stable device ID ───────────────────────────────
+// ─── Device ID ─────────────────────────────────────────────────────────────
 function getDeviceId(callback) {
   chrome.storage.local.get('focusdo_device_id', (data) => {
     if (data.focusdo_device_id) {
@@ -22,6 +24,84 @@ function getDeviceId(callback) {
 }
 
 // ─── Pomodoro ──────────────────────────────────────────────────────────────
+function TimerHistory({ onBack }) {
+  const [history, setHistory] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    apiFetch('/sessions/history')
+      .then(res => { if (res.success) setHistory(res.data); })
+      .catch(() => { })
+      .finally(() => setLoading(false));
+  }, []);
+
+  const deleteOne = async (id) => {
+    try {
+      await apiFetch(`/sessions/${id}`, { method: 'DELETE' });
+      setHistory(prev => prev.filter(s => s.id !== id));
+    } catch { }
+  };
+
+  const deleteAll = async () => {
+    try {
+      await apiFetch('/sessions', { method: 'DELETE' });
+      setHistory([]);
+    } catch { }
+  };
+
+  const grouped = history.reduce((acc, s) => {
+    const date = new Date(s.created_at).toLocaleDateString('en-IN', {
+      day: 'numeric', month: 'short', year: 'numeric'
+    });
+    if (!acc[date]) acc[date] = [];
+    acc[date].push(s);
+    return acc;
+  }, {});
+
+  return (
+    <div className="timer-history">
+      <div className="history-header">
+        <button className="back-btn" onClick={onBack}>
+          <FontAwesomeIcon icon={faArrowLeft} />
+        </button>
+        <span className="history-title">Session History</span>
+        {history.length > 0 && (
+          <button className="clear-all-btn" onClick={deleteAll}>
+            <FontAwesomeIcon icon={faBroom} /> Clear All
+          </button>
+        )}
+      </div>
+
+      {loading && <p className="history-empty">Loading...</p>}
+      {!loading && history.length === 0 && (
+        <p className="history-empty">No sessions yet. Start a focus timer! 🎯</p>
+      )}
+
+      <div className="history-list">
+        {Object.entries(grouped).map(([date, sessions]) => (
+          <div key={date} className="history-group">
+            <div className="history-date-label">{date}</div>
+            {sessions.map(s => (
+              <div key={s.id} className="history-item">
+                <span className={`history-badge ${s.type}`}>
+                  {s.type === 'focus' ? '🎯' : '☕'} {s.type}
+                </span>
+                <span className="history-duration">{s.duration_min} min</span>
+                <span className="history-time">
+                  {new Date(s.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                </span>
+                <button className="history-del-btn" onClick={() => deleteOne(s.id)}>
+                  <FontAwesomeIcon icon={faXmark} />
+                </button>
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function Pomodoro() {
   const DEFAULT_FOCUS = 25;
   const DEFAULT_BREAK = 5;
@@ -32,24 +112,21 @@ function Pomodoro() {
   const [running, setRunning] = useState(false);
   const [isFocus, setIsFocus] = useState(true);
   const [sessions, setSessions] = useState(0);
-  // 'idle' | 'focus_done' | 'break_done'
   const [phase, setPhase] = useState('idle');
+  const [showHistory, setShowHistory] = useState(false);
   const intervalRef = useRef(null);
   const totalRef = useRef(DEFAULT_FOCUS * 60);
   const breakTotalRef = useRef(DEFAULT_BREAK * 60);
 
-  // ── On popup open: sync with background timer ──────────────────────────
   useEffect(() => {
     chrome.runtime.sendMessage({ type: 'GET_TIMER' }, (res) => {
       const t = res?.timer;
       if (!t) return;
-
       setIsFocus(t.isFocus);
       if (t.customBreak) {
         breakTotalRef.current = t.customBreak;
         setCustomBreak(Math.round(t.customBreak / 60));
       }
-
       if (t.running && t.endTime) {
         const remaining = Math.round((t.endTime - Date.now()) / 1000);
         if (remaining > 0) {
@@ -71,18 +148,14 @@ function Pomodoro() {
         setSeconds(t.isFocus
           ? (t.secondsLeft || totalRef.current)
           : (t.secondsLeft || breakTotalRef.current));
-
-        // Restore phase if timer was just finished (background alarm fired)
         if (t.justFinished) {
           setPhase(t.isFocus ? 'break_done' : 'focus_done');
-          // Clear the flag
           chrome.storage.local.set({ timer: { ...t, justFinished: false } });
         }
       }
     });
   }, []);
 
-  // ── Local countdown ──────────────────────────────────────────────────────
   useEffect(() => {
     if (running) {
       intervalRef.current = setInterval(() => {
@@ -92,12 +165,10 @@ function Pomodoro() {
             setRunning(false);
             setIsFocus(prev => {
               if (prev) {
-                // Focus just ended → show "Start Break" CTA
                 setSessions(n => n + 1);
                 setPhase('focus_done');
                 setSeconds(breakTotalRef.current);
               } else {
-                // Break just ended → show "Start Focus" CTA
                 setPhase('break_done');
                 setSeconds(totalRef.current);
               }
@@ -118,17 +189,13 @@ function Pomodoro() {
     if (!running) {
       setPhase('idle');
       chrome.runtime.sendMessage({
-        type: 'START_TIMER',
-        seconds,
-        isFocus,
+        type: 'START_TIMER', seconds, isFocus,
         totalSeconds: isFocus ? totalRef.current : breakTotalRef.current,
         customBreak: breakTotalRef.current
       });
     } else {
       chrome.runtime.sendMessage({
-        type: 'PAUSE_TIMER',
-        secondsLeft: seconds,
-        isFocus,
+        type: 'PAUSE_TIMER', secondsLeft: seconds, isFocus,
         totalSeconds: isFocus ? totalRef.current : breakTotalRef.current,
         customBreak: breakTotalRef.current
       });
@@ -142,11 +209,8 @@ function Pomodoro() {
     setSeconds(breakSecs);
     setRunning(true);
     chrome.runtime.sendMessage({
-      type: 'START_TIMER',
-      seconds: breakSecs,
-      isFocus: false,
-      totalSeconds: breakSecs,
-      customBreak: breakTotalRef.current
+      type: 'START_TIMER', seconds: breakSecs, isFocus: false,
+      totalSeconds: breakSecs, customBreak: breakTotalRef.current
     });
   };
 
@@ -156,11 +220,8 @@ function Pomodoro() {
     setSeconds(focusSecs);
     setRunning(true);
     chrome.runtime.sendMessage({
-      type: 'START_TIMER',
-      seconds: focusSecs,
-      isFocus: true,
-      totalSeconds: focusSecs,
-      customBreak: breakTotalRef.current
+      type: 'START_TIMER', seconds: focusSecs, isFocus: true,
+      totalSeconds: focusSecs, customBreak: breakTotalRef.current
     });
   };
 
@@ -177,11 +238,7 @@ function Pomodoro() {
 
   const handleFocusMinuteChange = (val) => {
     if (running) return;
-    // Allow empty string while user is typing (backspace)
-    if (val === '' || val === undefined) {
-      setCustomMinutes('');
-      return;
-    }
+    if (val === '' || val === undefined) { setCustomMinutes(''); return; }
     const num = Math.max(1, Math.min(120, Number(val) || 1));
     setCustomMinutes(num);
     const s = num * 60;
@@ -191,11 +248,7 @@ function Pomodoro() {
 
   const handleBreakMinuteChange = (val) => {
     if (running) return;
-    // Allow empty string while user is typing (backspace)
-    if (val === '' || val === undefined) {
-      setCustomBreak('');
-      return;
-    }
+    if (val === '' || val === undefined) { setCustomBreak(''); return; }
     const num = Math.max(1, Math.min(60, Number(val) || 1));
     setCustomBreak(num);
     const s = num * 60;
@@ -209,10 +262,10 @@ function Pomodoro() {
   const ss = String(seconds % 60).padStart(2, '0');
   const percent = total > 0 ? Math.round(((total - seconds) / total) * 100) : 0;
 
+  if (showHistory) return <TimerHistory onBack={() => setShowHistory(false)} />;
+
   return (
     <div className="pomodoro">
-
-      {/* ── Focus Done: Start Break CTA ───────────────────────────────── */}
       {phase === 'focus_done' && (
         <div className="finish-banner banner-break">
           <span className="banner-icon">☕</span>
@@ -223,8 +276,6 @@ function Pomodoro() {
           <button onClick={() => setPhase('idle')} className="banner-close">✕</button>
         </div>
       )}
-
-      {/* ── Break Done: Start Focus CTA ───────────────────────────────── */}
       {phase === 'break_done' && (
         <div className="finish-banner banner-focus">
           <span className="banner-icon">🎯</span>
@@ -236,44 +287,37 @@ function Pomodoro() {
         </div>
       )}
 
-      <div className={`mode-pill ${isFocus ? 'focus' : 'brk'}`}>
-        {isFocus ? '🎯 Focus Session' : '☕ Break Time'}
+      <div className="pomodoro-top-row">
+        <div className={`mode-pill ${isFocus ? 'focus' : 'brk'}`}>
+          {isFocus ? '🎯 Focus Session' : '☕ Break Time'}
+        </div>
+        <button className="history-icon-btn" onClick={() => setShowHistory(true)} title="View history">
+          <FontAwesomeIcon icon={faHistory} />
+        </button>
       </div>
 
-      {/* ── Duration controls ─────────────────────────────────────────── */}
       <div className="duration-row">
         <div className="time-input">
           <label>Focus</label>
           <div className="time-input-row">
-            <button className="min-adj"
-              onClick={() => handleFocusMinuteChange(customMinutes - 1)}
-              disabled={running || customMinutes <= 1}>−</button>
-            <input type="number" min="1" max="120"
-              value={customMinutes}
+            <button className="min-adj" onClick={() => handleFocusMinuteChange(customMinutes - 1)} disabled={running || customMinutes <= 1}>−</button>
+            <input type="number" min="1" max="120" value={customMinutes}
               onChange={e => handleFocusMinuteChange(e.target.value)}
               onBlur={() => { if (!customMinutes || customMinutes < 1) handleFocusMinuteChange(1); }}
               disabled={running} />
-            <button className="min-adj"
-              onClick={() => handleFocusMinuteChange(customMinutes + 1)}
-              disabled={running || customMinutes >= 120}>+</button>
+            <button className="min-adj" onClick={() => handleFocusMinuteChange(customMinutes + 1)} disabled={running || customMinutes >= 120}>+</button>
             <span>min</span>
           </div>
         </div>
-
         <div className="time-input">
           <label>Break</label>
           <div className="time-input-row">
-            <button className="min-adj"
-              onClick={() => handleBreakMinuteChange(customBreak - 1)}
-              disabled={running || customBreak <= 1}>−</button>
-            <input type="number" min="1" max="60"
-              value={customBreak}
+            <button className="min-adj" onClick={() => handleBreakMinuteChange(customBreak - 1)} disabled={running || customBreak <= 1}>−</button>
+            <input type="number" min="1" max="60" value={customBreak}
               onChange={e => handleBreakMinuteChange(e.target.value)}
               onBlur={() => { if (!customBreak || customBreak < 1) handleBreakMinuteChange(1); }}
               disabled={running} />
-            <button className="min-adj"
-              onClick={() => handleBreakMinuteChange(customBreak + 1)}
-              disabled={running || customBreak >= 60}>+</button>
+            <button className="min-adj" onClick={() => handleBreakMinuteChange(customBreak + 1)} disabled={running || customBreak >= 60}>+</button>
             <span>min</span>
           </div>
         </div>
@@ -301,23 +345,94 @@ function Pomodoro() {
         <button onClick={reset} className="pomo-btn ghost" title="Reset">
           <FontAwesomeIcon icon={faRotateLeft} />
         </button>
-
-        {/* After focus done: show dedicated "Start Break" button */}
         {phase === 'focus_done' && !running ? (
-          <button onClick={startBreak} className="pomo-btn main green">
-            ☕ Start Break
-          </button>
+          <button onClick={startBreak} className="pomo-btn main green">☕ Start Break</button>
         ) : phase === 'break_done' && !running ? (
-          <button onClick={startFocus} className="pomo-btn main indigo">
-            🎯 Start Focus
-          </button>
+          <button onClick={startFocus} className="pomo-btn main indigo">🎯 Start Focus</button>
         ) : (
-          <button onClick={handleStart}
-            className={`pomo-btn main ${isFocus ? 'indigo' : 'green'}`}>
+          <button onClick={handleStart} className={`pomo-btn main ${isFocus ? 'indigo' : 'green'}`}>
             <FontAwesomeIcon icon={running ? faPause : faPlay} />
             {running ? 'Pause' : 'Start'}
           </button>
         )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Subtask Row ───────────────────────────────────────────────────────────
+function SubtaskList({ taskId, onSubtaskChange }) {
+  const [subtasks, setSubtasks] = useState([]);
+  const [input, setInput] = useState('');
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    apiFetch(`/tasks/${taskId}/subtasks`)
+      .then(res => { if (res.success) setSubtasks(res.data); })
+      .catch(() => { })
+      .finally(() => setLoading(false));
+  }, [taskId]);
+
+  const addSub = async () => {
+    if (!input.trim()) return;
+    try {
+      const data = await apiFetch(`/tasks/${taskId}/subtasks`, {
+        method: 'POST',
+        body: JSON.stringify({ text: input.trim() })
+      });
+      if (data.success) {
+        const newSubs = [...subtasks, data.data];
+        setSubtasks(newSubs);
+        setInput('');
+        onSubtaskChange(newSubs);
+      }
+    } catch { }
+  };
+
+  const toggleSub = async (subId) => {
+    try {
+      const data = await apiFetch(`/tasks/${taskId}/subtasks/${subId}/toggle`, { method: 'PATCH' });
+      if (data.success) {
+        setSubtasks(data.subtasks);
+        onSubtaskChange(data.subtasks, data.task);
+      }
+    } catch { }
+  };
+
+  const deleteSub = async (subId) => {
+    try {
+      await apiFetch(`/tasks/${taskId}/subtasks/${subId}`, { method: 'DELETE' });
+      const newSubs = subtasks.filter(s => s.id !== subId);
+      setSubtasks(newSubs);
+      onSubtaskChange(newSubs);
+    } catch { }
+  };
+
+  return (
+    <div className="subtask-section">
+      {loading && <p className="subtask-loading">Loading...</p>}
+      {subtasks.map(s => (
+        <div key={s.id} className={`subtask-item ${s.done ? 'done' : ''}`}>
+          <button onClick={() => toggleSub(s.id)} className={`check-btn small ${s.done ? 'checked' : ''}`}>
+            {s.done && <FontAwesomeIcon icon={faCheck} />}
+          </button>
+          <span className="subtask-text">{s.text}</span>
+          <button onClick={() => deleteSub(s.id)} className="subtask-del">
+            <FontAwesomeIcon icon={faXmark} />
+          </button>
+        </div>
+      ))}
+      <div className="subtask-input-row">
+        <input
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && addSub()}
+          placeholder="Add subtask..."
+          className="subtask-input"
+        />
+        <button onClick={addSub} className="subtask-add-btn">
+          <FontAwesomeIcon icon={faPlus} />
+        </button>
       </div>
     </div>
   );
@@ -330,6 +445,9 @@ function Todo() {
   const [priority, setPriority] = useState(false);
   const [loading, setLoading] = useState(true);
   const [deviceId, setDeviceId] = useState(null);
+  const [editingId, setEditingId] = useState(null);
+  const [editText, setEditText] = useState('');
+  const [expandedId, setExpandedId] = useState(null);
   const dragItem = useRef(null);
   const dragOverItem = useRef(null);
 
@@ -368,6 +486,7 @@ function Todo() {
     try {
       await apiFetch(`/tasks/${id}`, { method: 'DELETE' });
       setTasks(prev => prev.filter(t => t.id !== id));
+      if (expandedId === id) setExpandedId(null);
     } catch { }
   };
 
@@ -379,14 +498,52 @@ function Todo() {
     } catch { }
   };
 
-  // ── Drag handlers ──────────────────────────────────────────────────────
-  const handleDragStart = (index) => {
-    dragItem.current = index;
+  const startEdit = (t) => {
+    setEditingId(t.id);
+    setEditText(t.text);
   };
 
+  const saveEdit = async (id) => {
+    if (!editText.trim()) { setEditingId(null); return; }
+    try {
+      const data = await apiFetch(`/tasks/${id}/edit`, {
+        method: 'PATCH',
+        body: JSON.stringify({ text: editText.trim(), device_id: deviceId })
+      });
+      if (data.success)
+        setTasks(prev => prev.map(t => t.id === id ? data.data : t));
+    } catch { }
+    setEditingId(null);
+  };
+
+  const togglePriority = async (id) => {
+    try {
+      const data = await apiFetch(`/tasks/${id}/priority`, {
+        method: 'PATCH',
+        body: JSON.stringify({ device_id: deviceId })
+      });
+      if (data.success)
+        setTasks(prev => prev.map(t => t.id === id ? data.data : t));
+    } catch { }
+  };
+
+  const handleSubtaskChange = (taskId, newSubs, updatedTask) => {
+    setTasks(prev => prev.map(t => {
+      if (t.id !== taskId) return t;
+      const updated = {
+        ...t,
+        subtask_total: newSubs.length,
+        subtask_done: newSubs.filter(s => s.done).length,
+      };
+      if (updatedTask) updated.done = updatedTask.done;
+      return updated;
+    }));
+  };
+
+  // Drag
+  const handleDragStart = (index) => { dragItem.current = index; };
   const handleDragEnter = (index) => {
     dragOverItem.current = index;
-    // Live preview while dragging
     setTasks(prev => {
       const updated = [...prev];
       const dragged = updated.splice(dragItem.current, 1)[0];
@@ -395,7 +552,6 @@ function Todo() {
       return updated;
     });
   };
-
   const handleDragEnd = () => {
     dragItem.current = null;
     dragOverItem.current = null;
@@ -423,18 +579,13 @@ function Todo() {
       </div>
 
       <div className="input-row">
-        <button
-          onClick={() => setPriority(p => !p)}
-          className={`priority-btn ${priority ? 'active' : ''}`}
-          title="Mark as priority">
+        <button onClick={() => setPriority(p => !p)}
+          className={`priority-btn ${priority ? 'active' : ''}`} title="Mark as priority">
           <FontAwesomeIcon icon={faFlag} />
         </button>
-        <input
-          value={input}
-          onChange={e => setInput(e.target.value)}
+        <input value={input} onChange={e => setInput(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && addTask()}
-          placeholder="What needs to be done?"
-        />
+          placeholder="What needs to be done?" />
         <button onClick={addTask} className="add-btn">
           <FontAwesomeIcon icon={faPlus} />
         </button>
@@ -448,33 +599,104 @@ function Todo() {
             <p>All clear! Add a task above.</p>
           </li>
         )}
-        {sorted.map((t, index) => (
-          <li
-            key={t.id}
-            className={`task-item ${t.done ? 'done' : ''} ${t.priority && !t.done ? 'high-priority' : ''}`}
-            draggable
-            onDragStart={() => handleDragStart(index)}
-            onDragEnter={() => handleDragEnter(index)}
-            onDragEnd={handleDragEnd}
-            onDragOver={e => e.preventDefault()}
-          >
-            <span className="drag-handle" title="Drag to reorder">
-              <FontAwesomeIcon icon={faGripVertical} />
-            </span>
-            <button onClick={() => toggle(t.id)} className={`check-btn ${t.done ? 'checked' : ''}`}>
-              {t.done && <FontAwesomeIcon icon={faCheck} />}
-            </button>
-            <span className="task-text">
-              {t.priority === 1 && !t.done && (
-                <FontAwesomeIcon icon={faFlag} className="flag-icon" />
+        {sorted.map((t, index) => {
+          const pct = t.subtask_total > 0
+            ? Math.round((t.subtask_done / t.subtask_total) * 100)
+            : null;
+          const isExpanded = expandedId === t.id;
+
+          return (
+            <li key={t.id}
+              className={`task-item ${t.done ? 'done' : ''} ${t.priority && !t.done ? 'high-priority' : ''}`}
+              draggable={editingId !== t.id}
+              onDragStart={() => handleDragStart(index)}
+              onDragEnter={() => handleDragEnter(index)}
+              onDragEnd={handleDragEnd}
+              onDragOver={e => e.preventDefault()}
+            >
+              {/* Main row */}
+              <div className="task-main-row">
+                <span className="drag-handle" title="Drag to reorder">
+                  <FontAwesomeIcon icon={faGripVertical} />
+                </span>
+                <button onClick={() => toggle(t.id)} className={`check-btn ${t.done ? 'checked' : ''}`}>
+                  {t.done && <FontAwesomeIcon icon={faCheck} />}
+                </button>
+
+                {editingId === t.id ? (
+                  <input
+                    className="task-edit-input"
+                    value={editText}
+                    onChange={e => setEditText(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') saveEdit(t.id);
+                      if (e.key === 'Escape') setEditingId(null);
+                    }}
+                    autoFocus
+                  />
+                ) : (
+                  <span className="task-text">
+                    {t.priority === 1 && !t.done && (
+                      <FontAwesomeIcon icon={faFlag} className="flag-icon" />
+                    )}
+                    {t.text}
+                  </span>
+                )}
+
+                <div className="task-actions">
+                  {editingId === t.id ? (
+                    <button onClick={() => saveEdit(t.id)} className="action-btn save-btn" title="Save">
+                      <FontAwesomeIcon icon={faCheck} />
+                    </button>
+                  ) : (
+                    <>
+                      <button onClick={() => togglePriority(t.id)}
+                        className={`action-btn flag-btn ${t.priority ? 'flagged' : ''}`} title="Toggle priority">
+                        <FontAwesomeIcon icon={faFlag} />
+                      </button>
+                      <button onClick={() => startEdit(t)} className="action-btn edit-btn" title="Edit">
+                        <FontAwesomeIcon icon={faPencil} />
+                      </button>
+                      <button onClick={() => setExpandedId(isExpanded ? null : t.id)}
+                        className="action-btn expand-btn" title="Subtasks">
+                        <FontAwesomeIcon icon={isExpanded ? faChevronDown : faChevronRight} />
+                      </button>
+                      <button onClick={() => remove(t.id)} className="del-btn" title="Delete">
+                        <FontAwesomeIcon icon={faTrash} />
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Progress bar (only if has subtasks) */}
+              {pct !== null && (
+                <div className="subtask-progress-wrap">
+                  <div className="subtask-progress-bar">
+                    <div
+                      className="subtask-progress-fill"
+                      style={{
+                        width: `${pct}%`,
+                        background: pct === 100 ? '#10b981' : pct > 50 ? '#6366f1' : '#f97316'
+                      }}
+                    />
+                  </div>
+                  <span className="subtask-progress-label">
+                    {t.subtask_done}/{t.subtask_total} · {pct}%
+                  </span>
+                </div>
               )}
-              {t.text}
-            </span>
-            <button onClick={() => remove(t.id)} className="del-btn">
-              <FontAwesomeIcon icon={faTrash} />
-            </button>
-          </li>
-        ))}
+
+              {/* Subtasks panel */}
+              {isExpanded && (
+                <SubtaskList
+                  taskId={t.id}
+                  onSubtaskChange={(newSubs, updatedTask) => handleSubtaskChange(t.id, newSubs, updatedTask)}
+                />
+              )}
+            </li>
+          );
+        })}
       </ul>
     </div>
   );
@@ -484,7 +706,6 @@ function Todo() {
 function App() {
   const [tab, setTab] = useState('todo');
 
-  // If the popup opened because a timer just finished, switch to Timer tab
   useEffect(() => {
     chrome.storage.local.get('openOnTimer', (data) => {
       if (data.openOnTimer) {
