@@ -448,6 +448,7 @@ function Todo() {
   const [editingId, setEditingId] = useState(null);
   const [editText, setEditText] = useState('');
   const [expandedId, setExpandedId] = useState(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const dragItem = useRef(null);
   const dragOverItem = useRef(null);
 
@@ -488,6 +489,7 @@ function Todo() {
       setTasks(prev => prev.filter(t => t.id !== id));
       if (expandedId === id) setExpandedId(null);
     } catch { }
+    setConfirmDeleteId(null);
   };
 
   const clearDone = async () => {
@@ -571,11 +573,7 @@ function Todo() {
       <div className="stats-row">
         <div className="stat-chip pending">{pending} pending</div>
         <div className="stat-chip done-chip">{done} done</div>
-        {done > 0 && (
-          <button onClick={clearDone} className="clear-btn" title="Clear completed">
-            <FontAwesomeIcon icon={faBroom} /> Clear
-          </button>
-        )}
+
       </div>
 
       <div className="input-row">
@@ -661,9 +659,17 @@ function Todo() {
                         className="action-btn expand-btn" title="Subtasks">
                         <FontAwesomeIcon icon={isExpanded ? faChevronDown : faChevronRight} />
                       </button>
-                      <button onClick={() => remove(t.id)} className="del-btn" title="Delete">
-                        <FontAwesomeIcon icon={faTrash} />
-                      </button>
+                      {confirmDeleteId === t.id ? (
+                        <div className="delete-confirm-inline">
+                          <span className="del-confirm-text">Delete?</span>
+                          <button onClick={() => remove(t.id)} className="del-yes-btn">Yes</button>
+                          <button onClick={() => setConfirmDeleteId(null)} className="del-no-btn">No</button>
+                        </div>
+                      ) : (
+                        <button onClick={() => setConfirmDeleteId(t.id)} className="del-btn" title="Delete">
+                          <FontAwesomeIcon icon={faTrash} />
+                        </button>
+                      )}
                     </>
                   )}
                 </div>

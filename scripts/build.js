@@ -50,6 +50,13 @@ copyDir(buildDir, chromeDir);
 copyFile(path.join(publicDir, 'manifest.chromium.json'), path.join(chromeDir, 'manifest.json'));
 copyFile(path.join(publicDir, 'background.chromium.js'), path.join(chromeDir, 'background.js'));
 generateConfig(chromeDir);  // ← writes config.js with value from .env
+// Fix index.html to load config.js before main bundle
+const chromeIdx = path.join(chromeDir, 'index.html');
+let chromeHtml = fs.readFileSync(chromeIdx, 'utf8');
+if (!chromeHtml.includes('config.js')) {
+    chromeHtml = chromeHtml.replace('<script defer', '<script src="/config.js"></script><script defer');
+    fs.writeFileSync(chromeIdx, chromeHtml);
+}
 console.log('✅ Chrome build ready → build-chrome/');
 
 // ── Step 3: Firefox build ─────────────────────────────────────────────────────
@@ -60,6 +67,13 @@ copyDir(buildDir, firefoxDir);
 copyFile(path.join(publicDir, 'manifest.firefox.json'), path.join(firefoxDir, 'manifest.json'));
 copyFile(path.join(publicDir, 'background.firefox.js'), path.join(firefoxDir, 'background.js'));
 generateConfig(firefoxDir);  // ← writes config.js with value from .env
+// Fix index.html to load config.js before main bundle
+const firefoxIdx = path.join(firefoxDir, 'index.html');
+let firefoxHtml = fs.readFileSync(firefoxIdx, 'utf8');
+if (!firefoxHtml.includes('config.js')) {
+    firefoxHtml = firefoxHtml.replace('<script defer', '<script src="/config.js"></script><script defer');
+    fs.writeFileSync(firefoxIdx, firefoxHtml);
+}
 console.log('✅ Firefox build ready → build-firefox/');
 
 console.log('\n🚀 All builds complete!\n');
