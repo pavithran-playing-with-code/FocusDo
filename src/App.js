@@ -12,14 +12,29 @@ import { apiFetch } from './utils/api';
 import './App.css';
 
 // ─── Device ID ─────────────────────────────────────────────────────────────
+// Stored in BOTH chrome.storage.sync and chrome.storage.local.
+// Sync survives reinstall (if Edge sync is on); local is the fast read.
 function getDeviceId(callback) {
-  chrome.storage.local.get('focusdo_device_id', (data) => {
-    if (data.focusdo_device_id) {
-      callback(data.focusdo_device_id);
-    } else {
-      const id = 'dev_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
-      chrome.storage.local.set({ focusdo_device_id: id }, () => callback(id));
+  chrome.storage.sync.get('focusdo_device_id', (syncData) => {
+    if (syncData && syncData.focusdo_device_id) {
+      console.log('[FocusDo] device_id (from sync):', syncData.focusdo_device_id);
+      chrome.storage.local.set({ focusdo_device_id: syncData.focusdo_device_id });
+      callback(syncData.focusdo_device_id);
+      return;
     }
+    chrome.storage.local.get('focusdo_device_id', (localData) => {
+      if (localData && localData.focusdo_device_id) {
+        console.log('[FocusDo] device_id (from local):', localData.focusdo_device_id);
+        chrome.storage.sync.set({ focusdo_device_id: localData.focusdo_device_id });
+        callback(localData.focusdo_device_id);
+        return;
+      }
+      const id = 'dev_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+      console.warn('[FocusDo] generated NEW device_id:', id);
+      chrome.storage.local.set({ focusdo_device_id: id });
+      chrome.storage.sync.set({ focusdo_device_id: id });
+      callback(id);
+    });
   });
 }
 
@@ -31,7 +46,7 @@ function TimerHistory({ onBack }) {
   useEffect(() => {
     apiFetch('/sessions/history')
       .then(res => { if (res.success) setHistory(res.data); })
-      .catch(() => { })
+      .catch(err => console.error('[FocusDo]', err))
       .finally(() => setLoading(false));
   }, []);
 
@@ -39,14 +54,14 @@ function TimerHistory({ onBack }) {
     try {
       await apiFetch(`/sessions/${id}`, { method: 'DELETE' });
       setHistory(prev => prev.filter(s => s.id !== id));
-    } catch { }
+    } catch (err) { console.error('[FocusDo]', err); }
   };
 
   const deleteAll = async () => {
     try {
       await apiFetch('/sessions', { method: 'DELETE' });
       setHistory([]);
-    } catch { }
+    } catch (err) { console.error('[FocusDo]', err); }
   };
 
   const grouped = history.reduce((acc, s) => {
@@ -369,7 +384,7 @@ function SubtaskList({ taskId, onSubtaskChange }) {
   useEffect(() => {
     apiFetch(`/tasks/${taskId}/subtasks`)
       .then(res => { if (res.success) setSubtasks(res.data); })
-      .catch(() => { })
+      .catch(err => console.error('[FocusDo]', err))
       .finally(() => setLoading(false));
   }, [taskId]);
 
@@ -386,7 +401,7 @@ function SubtaskList({ taskId, onSubtaskChange }) {
         setInput('');
         onSubtaskChange(newSubs);
       }
-    } catch { }
+    } catch (err) { console.error('[FocusDo]', err); }
   };
 
   const toggleSub = async (subId) => {
@@ -396,7 +411,7 @@ function SubtaskList({ taskId, onSubtaskChange }) {
         setSubtasks(data.subtasks);
         onSubtaskChange(data.subtasks, data.task);
       }
-    } catch { }
+    } catch (err) { console.error('[FocusDo]', err); }
   };
 
   const deleteSub = async (subId) => {
@@ -405,7 +420,7 @@ function SubtaskList({ taskId, onSubtaskChange }) {
       const newSubs = subtasks.filter(s => s.id !== subId);
       setSubtasks(newSubs);
       onSubtaskChange(newSubs);
-    } catch { }
+    } catch (err) { console.error('[FocusDo]', err); }
   };
 
   return (
@@ -457,7 +472,7 @@ function Todo() {
       setDeviceId(id);
       apiFetch(`/tasks?device_id=${encodeURIComponent(id)}`)
         .then(res => { if (res.success) setTasks(res.data); })
-        .catch(() => { })
+        .catch(err => console.error('[FocusDo]', err))
         .finally(() => setLoading(false));
     });
   }, []);
@@ -472,7 +487,7 @@ function Todo() {
       if (data.success) setTasks(prev => [data.data, ...prev]);
       setInput('');
       setPriority(false);
-    } catch { }
+    } catch (err) { console.error('[FocusDo]', err); }
   };
 
   const toggle = async (id) => {
@@ -480,7 +495,7 @@ function Todo() {
       const data = await apiFetch(`/tasks/${id}/toggle`, { method: 'PATCH' });
       if (data.success)
         setTasks(prev => prev.map(t => t.id === id ? data.data : t));
-    } catch { }
+    } catch (err) { console.error('[FocusDo]', err); }
   };
 
   const remove = async (id) => {
@@ -488,7 +503,7 @@ function Todo() {
       await apiFetch(`/tasks/${id}`, { method: 'DELETE' });
       setTasks(prev => prev.filter(t => t.id !== id));
       if (expandedId === id) setExpandedId(null);
-    } catch { }
+    } catch (err) { console.error('[FocusDo]', err); }
     setConfirmDeleteId(null);
   };
 
@@ -497,7 +512,7 @@ function Todo() {
       const q = deviceId ? `?device_id=${encodeURIComponent(deviceId)}` : '';
       await apiFetch(`/tasks/clear/done${q}`, { method: 'DELETE' });
       setTasks(prev => prev.filter(t => !t.done));
-    } catch { }
+    } catch (err) { console.error('[FocusDo]', err); }
   };
 
   const startEdit = (t) => {
@@ -514,7 +529,7 @@ function Todo() {
       });
       if (data.success)
         setTasks(prev => prev.map(t => t.id === id ? data.data : t));
-    } catch { }
+    } catch (err) { console.error('[FocusDo]', err); }
     setEditingId(null);
   };
 
@@ -526,7 +541,7 @@ function Todo() {
       });
       if (data.success)
         setTasks(prev => prev.map(t => t.id === id ? data.data : t));
-    } catch { }
+    } catch (err) { console.error('[FocusDo]', err); }
   };
 
   const handleSubtaskChange = (taskId, newSubs, updatedTask) => {

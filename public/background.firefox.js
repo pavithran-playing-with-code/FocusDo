@@ -77,15 +77,23 @@ browser.alarms.onAlarm.addListener((alarm) => {
 
         // ✅ API URL from .env via config.js
         if (wasFocus) {
-            fetch(`${FOCUSDO_API}/sessions`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    duration_min: Math.round((t.totalSeconds || 25 * 60) / 60),
-                    type: 'focus',
-                    completed: 1
-                })
-            }).catch(() => { });
+            browser.storage.local.get('focusdo_device_id', (storage) => {
+                const deviceId = storage && storage.focusdo_device_id;
+                if (!deviceId) {
+                    console.warn('[FocusDo BG] no device_id in storage, skipping session save');
+                    return;
+                }
+                fetch(`${FOCUSDO_API}/sessions`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        device_id: deviceId,
+                        duration_min: Math.round((t.totalSeconds || 25 * 60) / 60),
+                        type: 'focus',
+                        completed: 1
+                    })
+                }).catch(err => console.error('[FocusDo BG] session save failed', err));
+            });
         }
 
         // ── Set flag so popup opens on Timer tab ─────────────────────────

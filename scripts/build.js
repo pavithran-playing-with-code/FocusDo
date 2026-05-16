@@ -33,7 +33,11 @@ function copyDir(src, dest) {
 // ── Auto-generate config.js from .env ────────────────────────────────────────
 function generateConfig(destDir) {
     const apiBase = process.env.REACT_APP_API || 'http://localhost:5050/api';
-    const content = `// Auto-generated at build time from .env — do not edit manually\nconst FOCUSDO_API = "${apiBase}";\n`;
+    const content =
+        `// Auto-generated at build time from .env — do not edit manually\n` +
+        `var FOCUSDO_API = "${apiBase}";\n` +
+        `if (typeof self !== 'undefined') self.FOCUSDO_API = FOCUSDO_API;\n` +
+        `if (typeof window !== 'undefined') window.FOCUSDO_API = FOCUSDO_API;\n`;
     fs.writeFileSync(path.join(destDir, 'config.js'), content);
     console.log(`✔ Generated config.js with API = ${apiBase}`);
 }

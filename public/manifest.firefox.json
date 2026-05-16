@@ -1,7 +1,7 @@
 {
     "manifest_version": 2,
     "name": "FocusDo",
-    "version": "1.2",
+    "version": "1.4",
     "description": "Todo + Pomodoro productivity extension",
     "browser_action": {
         "default_popup": "index.html",
